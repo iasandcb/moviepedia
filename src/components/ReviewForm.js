@@ -2,7 +2,6 @@ import { useState } from 'react';
 import './ReviewForm.css';
 import FileInput from './FileInput';
 import RatingInput from './RatingInput';
-import { createReview } from '../api';
 
 const INITIAL_VALUES = {
   title: '',
@@ -15,6 +14,7 @@ export default function ReviewForm(
   { initialValues = INITIAL_VALUES,
     initialPreview,
     onCancel,
+    onSubmit,
     onSubmitSuccess }
 ) {
   const [values, setValues] = useState(initialValues);
@@ -45,7 +45,7 @@ export default function ReviewForm(
     formData.append('rating', values.rating);
     formData.append('content', values.content);
     formData.append('imgFile', values.imgFile);
-    const result = await createReview(formData);
+    const result = await onSubmit(formData);
     const { review } = result;
     setValues(INITIAL_VALUES);
     onSubmitSuccess(review);
