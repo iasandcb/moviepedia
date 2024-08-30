@@ -1,7 +1,7 @@
 import ReviewList from "./ReviewList";
 import { useState, useEffect } from 'react';
 import { getReviews } from "../api";
-import ReviewForm from "./ReviewForm";
+import ReviewForm from "./ReviewForm";
 
 const LIMIT = 6;
 
@@ -57,6 +57,10 @@ export default function App() {
     await handleLoad({ order, offset, limit: LIMIT });
   }
 
+  const handleSubmitSuccess = (review) => {
+    setItems((prevItems) => [review, ...prevItems]);  
+  }
+
   useEffect(() => {
     handleLoad({ order, offset: 0, limit: LIMIT });
   }, [order]);
@@ -67,7 +71,7 @@ export default function App() {
         <button onClick={handleNewestClick}>최신순</button>
         <button onClick={handleBestClick}>베스트순</button>
       </div>
-      <ReviewForm />
+      <ReviewForm onSubmitSuccess={handleSubmitSuccess}/>
       <ReviewList items={sortedItems} onDelete={handleDelete} />;
       {hasNext && (
         <button disabled={isLoading} onClick={handleLoadMore}>
