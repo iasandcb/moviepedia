@@ -1,7 +1,9 @@
 import ReviewList from "./ReviewList";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+// import { useState, useEffect } from 'react';
 import { createReview, getReviews, updateReview, deleteReview } from "../api";
 import ReviewForm from "./ReviewForm";
+import useAsync from './hooks/useAsync';
 
 const LIMIT = 6;
 
@@ -10,8 +12,7 @@ export default function App() {
   const [order, setOrder] = useState('createdAt');
   const [offset, setOffset] = useState(0);
   const [hasNext, setHasNext] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingError, setLoadingError] = useState(null);
+  const [isLoading, loadingError, getReviewsAsync] = useAsync(getReviews);
   const [items, setItems] = useState([]);
   // setItems(getReviews()); Danger!!!
   const sortedItems = items.sort((a, b) => b[order] - a[order]);
@@ -27,33 +28,40 @@ export default function App() {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id));
   };
 
-  const handleLoad = async (options) => {
-    let result;
-    try {
-      setLoadingError(null);
-      setIsLoading(true);
-      result = await getReviews(options);
-    } catch (error) {
-      console.log(error);
-      setLoadingError(error);
-      return;
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLoad = useCallback(
+    async (options) => {
+      const result = await getReviewsAsync(options);
+      if (!result) return;
 
-    const { paging, reviews } = result;
-    if (options.offset === 0) {
-      setItems(reviews);      
-    } else {
-      // setItems([...items, ...reviews]);
-      setItems((prevItems) => {
-        return [...prevItems, ...reviews];
+      const { paging, reviews } = result;
+      if (options.offset === 0) {
+        setItems(reviews);
+      } else {
+        setItems((prevItems) => [...prevItems, ...reviews]);
       }
-      );
-    }
-    setOffset(options.offset + options.limit);
-    setHasNext(paging.hasNext);
-  }
+      setOffset(options.offset + options.limit);
+      setHasNext(paging.hasNext);
+    },
+    [getReviewsAsync]
+  );
+
+  // const handleLoad = async (options) => {
+  //   const result = await getReviewsAsync(options);
+  //   if (!result) return;
+
+  //   const { paging, reviews } = result;
+  //   if (options.offset === 0) {
+  //     setItems(reviews);      
+  //   } else {
+  //     // setItems([...items, ...reviews]);
+  //     setItems((prevItems) => {
+  //       return [...prevItems, ...reviews];
+  //     }
+  //     );
+  //   }
+  //   setOffset(options.offset + options.limit);
+  //   setHasNext(paging.hasNext);
+  // }
 
   const handleLoadMore = async () => {
     await handleLoad({ order, offset, limit: LIMIT });
@@ -76,7 +84,8 @@ export default function App() {
 
   useEffect(() => {
     handleLoad({ order, offset: 0, limit: LIMIT });
-  }, [order]);
+  }, [order, handleLoad]);
+// }, [order]);
 
   return (
     <div>
