@@ -3,7 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 // import { useState, useEffect } from 'react';
 import { createReview, getReviews, updateReview, deleteReview } from "../api";
 import ReviewForm from "./ReviewForm";
-import useAsync from './hooks/useAsync';
+import useAsync from '../hooks/useAsync';
+import LocaleContext from "../contexts/LocaleContext";
+import LocaleSelect from "./LocaleSelect";
 
 const LIMIT = 6;
 
@@ -14,6 +16,8 @@ export default function App() {
   const [hasNext, setHasNext] = useState(false);
   const [isLoading, loadingError, getReviewsAsync] = useAsync(getReviews);
   const [items, setItems] = useState([]);
+  const [locale, setLocale] = useState('ko');
+
   // setItems(getReviews()); Danger!!!
   const sortedItems = items.sort((a, b) => b[order] - a[order]);
 
@@ -45,24 +49,6 @@ export default function App() {
     [getReviewsAsync]
   );
 
-  // const handleLoad = async (options) => {
-  //   const result = await getReviewsAsync(options);
-  //   if (!result) return;
-
-  //   const { paging, reviews } = result;
-  //   if (options.offset === 0) {
-  //     setItems(reviews);      
-  //   } else {
-  //     // setItems([...items, ...reviews]);
-  //     setItems((prevItems) => {
-  //       return [...prevItems, ...reviews];
-  //     }
-  //     );
-  //   }
-  //   setOffset(options.offset + options.limit);
-  //   setHasNext(paging.hasNext);
-  // }
-
   const handleLoadMore = async () => {
     await handleLoad({ order, offset, limit: LIMIT });
   }
@@ -84,31 +70,33 @@ export default function App() {
 
   useEffect(() => {
     handleLoad({ order, offset: 0, limit: LIMIT });
-  }, [order, handleLoad]);
-// }, [order]);
+ }, [order, handleLoad]);
 
   return (
-    <div>
+    <LocaleContext.Provider value={locale}>
       <div>
-        <button onClick={handleNewestClick}>최신순</button>
-        <button onClick={handleBestClick}>베스트순</button>
+        <LocaleSelect value={locale} onChange={setLocale} />
+        <div>
+          <button onClick={handleNewestClick}>최신순</button>
+          <button onClick={handleBestClick}>베스트순</button>
+        </div>
+        <ReviewForm 
+          onSubmit={createReview}
+          onSubmitSuccess={handleCreateSuccess}
+        />
+        <ReviewList 
+          items={sortedItems} 
+          onDelete={handleDelete} 
+          onUpdate={updateReview}
+          onUpdateSuccess={handleUpdateSuccess}
+        />;
+        {hasNext && (
+          <button disabled={isLoading} onClick={handleLoadMore}>
+          더보기
+          </button>
+        )}
+        {loadingError?.message && <span>{loadingError.message}</span>}
       </div>
-      <ReviewForm 
-        onSubmit={createReview}
-        onSubmitSuccess={handleCreateSuccess}
-      />
-      <ReviewList 
-        items={sortedItems} 
-        onDelete={handleDelete} 
-        onUpdate={updateReview}
-        onUpdateSuccess={handleUpdateSuccess}
-      />;
-      {hasNext && (
-        <button disabled={isLoading} onClick={handleLoadMore}>
-        더보기
-        </button>
-      )}
-      {loadingError?.message && <span>{loadingError.message}</span>}
-    </div>
+    </LocaleContext.Provider>
   );
 }
